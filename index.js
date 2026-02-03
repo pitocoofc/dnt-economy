@@ -60,6 +60,41 @@ module.exports = {
             }
         });
 
+        // --- COMANDO: /ranking ---
+        bot.command({
+            name: 'ranking',
+            description: 'Veja quem são os mais ricos do servidor',
+            run: async (ctx) => {
+                const db = getDb();
+                
+                // Transforma o objeto {id: saldo} em uma array ordenada
+                const sorted = Object.entries(db)
+                    .map(([id, balance]) => ({ id, balance }))
+                    .sort((a, b) => b.balance - a.balance)
+                    .slice(0, 10); // Pega o Top 10
+
+                if (sorted.length === 0) {
+                    return ctx.reply("🏦 Ninguém tem dinheiro ainda. Que tal usar o `/daily`?");
+                }
+
+                let rankMsg = "🏆 **RANKING DE RICOS DA NDJ-LIB** 🏆\n\n";
+                
+                // Monta a lista visual
+                for (let i = 0; i < sorted.length; i++) {
+                    try {
+                        // Tenta buscar o nome do usuário para ficar bonito no log
+                        const user = await ctx.client.users.fetch(sorted[i].id);
+                        rankMsg += `${i + 1}. **${user.username}** — R$ ${sorted[i].balance}\n`;
+                    } catch {
+                        rankMsg += `${i + 1}. *Usuário Desconhecido* — R$ ${sorted[i].balance}\n`;
+                    }
+                }
+
+                await ctx.reply(rankMsg);
+            }
+        });
+        
+        
         // --- COMANDO: /removemoney ---
         bot.command({
             name: 'removemoney',
