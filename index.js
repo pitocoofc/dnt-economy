@@ -94,6 +94,88 @@ module.exports = {
             }
         });
         
+        // --- COMANDO: /roleta ---
+        bot.command({
+            name: 'roleta',
+            description: 'Tente a sorte na roleta do Tigrinho DNT!',
+            options: [
+                { name: 'valor', description: 'Quanto quer apostar?', type: 4, required: true }
+            ],
+            run: async (ctx) => {
+                const db = getDb();
+                const userId = ctx.interaction.user.id;
+                const aposta = ctx.interaction.options.getInteger('valor');
+
+                if (aposta <= 0) return ctx.reply("❌ Aposte um valor válido!");
+                if ((db[userId] || 0) < aposta) return ctx.reply("❌ Saldo insuficiente!");
+
+                // Emojis baseados na sua animação
+                const itens = ['🍒', '🐯', '🌸'];
+                const resultado = [
+                    itens[Math.floor(Math.random() * itens.length)],
+                    itens[Math.floor(Math.random() * itens.length)],
+                    itens[Math.floor(Math.random() * itens.length)]
+                ];
+
+                let multiplicador = 0;
+                let mensagem = "";
+
+                // Lógica de Ganho baseada no GIF
+                if (resultado[0] === resultado[1] && resultado[1] === resultado[2]) {
+                    const icone = resultado[0];
+                    if (icone === '🍒') multiplicador = 2;
+                    if (icone === '🐯') multiplicador = 5;
+                    if (icone === '🌸') multiplicador = 10;
+                    
+                    const ganho = aposta * multiplicador;
+                    db[userId] += ganho;
+                    mensagem = `🎰 **[ ${resultado.join(' | ')} ]**\n\n🔥 MODO TURBO! Você ganhou **R$ ${ganho}** (${multiplicador}x)!`;
+                } else {
+                    db[userId] -= aposta;
+                    mensagem = `🎰 **[ ${resultado.join(' | ')} ]**\n\n📉 Não foi dessa vez... Você perdeu **R$ ${aposta}**.`;
+                }
+
+                saveDb(db);
+                await ctx.reply(mensagem);
+            }
+        });
+
+
+                // --- COMANDO: /coinflip ---
+        bot.command({
+            name: 'coinflip',
+            description: 'Aposte seu dinheiro no cara ou coroa',
+            options: [
+                { name: 'lado', description: 'Escolha seu lado', type: 3, required: true, 
+                  choices: [{ name: 'Cara', value: 'cara' }, { name: 'Coroa', value: 'coroa' }] },
+                { name: 'valor', description: 'Quanto quer apostar?', type: 4, required: true }
+            ],
+            run: async (ctx) => {
+                const db = getDb();
+                const userId = ctx.interaction.user.id;
+                const escolha = ctx.interaction.options.getString('lado');
+                const aposta = ctx.interaction.options.getInteger('valor');
+
+                // Validações
+                if (aposta <= 0) return ctx.reply("❌ Aposte um valor válido!");
+                if ((db[userId] || 0) < aposta) return ctx.reply("❌ Você não tem saldo suficiente para essa aposta.");
+
+                const resultado = Math.random() < 0.5 ? 'cara' : 'coroa';
+                const venceu = escolha === resultado;
+
+                if (venceu) {
+                    db[userId] += aposta;
+                    await ctx.reply(`🪙 Caiu **${resultado}**! Você ganhou **R$ ${aposta}**! 🎉`);
+                } else {
+                    db[userId] -= aposta;
+                    await ctx.reply(`🪙 Caiu **${resultado}**... Você perdeu **R$ ${aposta}**. 💸`);
+                }
+
+                saveDb(db);
+            }
+        });
+        
+
         
         // --- COMANDO: /removemoney ---
         bot.command({
